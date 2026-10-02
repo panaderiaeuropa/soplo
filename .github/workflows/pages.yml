@@ -1,0 +1,44 @@
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Pages (y habilitarlo si hace falta)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Armar el sitio sin los respaldos
+        run: |
+          mkdir -p _sitio
+          rsync -a --exclude='.git' --exclude='_sitio' --exclude='.github' \
+                --exclude='soplo-sitio.zip' --exclude='anillos cristal' ./ _sitio/
+          ls -la _sitio
+          test -f _sitio/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _sitio
+
+      - id: despliegue
+        uses: actions/deploy-pages@v4
